@@ -1,0 +1,99 @@
+---
+title: "Homework 1 Group 2"
+author: "Critical Thinking Group"
+date: "September 13, 2019"
+output: html_document
+---
+
+
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(MASS)
+library(knitr)
+library(xtable)
+library(dplyr)
+library(psych)
+library(stringr)
+library(car)
+library(faraway)
+
+```
+
+#Overview
+
+In this homework assignment, you will explore, analyze and model a data set containing approximately 2200
+records. Each record represents a professional baseball team from the years 1871 to 2006 inclusive. Each record
+has the performance of the team for the given year, with all of the statistics adjusted to match the performance of
+a 162 game season.
+
+Your objective is to build a multiple linear regression model on the training data to predict the number of wins
+for the team. You can only use the variables given to you (or variables that you derive from the variables
+provided). Below is a short description of the variables of interest in the data set:
+
+
+Reading data source for training and evaluation respectively
+
+```{r Dataingest}
+
+mbtrain <- read.csv("https://raw.githubusercontent.com/sortega7878/DATA621G2/master/HW1/moneyball-training-data.csv", header= TRUE)
+mbeval <- read.csv("https://raw.githubusercontent.com/sortega7878/DATA621G2/master/HW1/moneyball-evaluation-data.csv", header= TRUE)
+
+```
+
+
+In section we will explore and gain some insights into the dataset by pursuing the below high level steps and inquiries: 
+
+-Variable identification 
+-Variable Relationships 
+-Data summary analysis 
+-Outliers and Missing Values Identification 
+
+
+First let's start identifying variables:
+
+```{r varident}
+
+kable(mbtrain, caption = "Variable Definition")
+```
+
+
+All the variables displayed are numeric. We're going to have 15 variables as predictors and the dependent variable will be TARGET_WINS
+
+## Data Summary 
+
+
+In this section, we will create summary data to better understand the initial relationship variables have with our dependent variable using correlation, central tendency, and dispersion As shown in table 2. 
+
+
+```{r exploration}
+
+mbstats <- psych::describe(mbtrain, skew = FALSE, na.rm = TRUE)[c(3:6)]
+
+mbstats0<- mbstats
+mbstats <- cbind(VARIABLE_NAME = rownames(mbstats), mbstats)
+kable(mbstats0, caption = "Data Summary")
+
+Variable<- rownames(mbstats)
+
+fun <- function(x) sum(!complete.cases(x))
+Missing <- sapply(mbtrain[Variable], FUN = fun) 
+
+fun <- function(x, y) cor(y, x, use = "na.or.complete")
+Correlation <- sapply(mbtrain[Variable], FUN = fun, y=mbtrain$TARGET_WINS) 
+
+mbstats2 <- data.frame(cbind( Missing, Correlation))
+kable(mbstats2, caption = "Missing Data and Data Correlation")
+
+```
+
+Based on table 2 and Table 3, we can make the below observations: 
+
+Variables like TEAM_PITCHING_H,TIEM_FIELDING_E and TEAM_PITCHING_SO seem to have outliers present due median and trimeed mean values
+Variables such as TEAM_BATTING_HBP and TEAM_BASERUN_CS have a lot of missing values and present low correlation so inclusion in the model migh not add any value
+Variables with less missing values we can complete and handle them such as TEAM_BATTING_SO, FIELDING_DP, TEAM_PITICHING_SO, BASERUN_SB
+
+
+
