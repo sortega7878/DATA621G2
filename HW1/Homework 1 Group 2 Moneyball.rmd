@@ -1,0 +1,216 @@
+---
+title: "Homework 1: MoneyBall"
+author: "Omar Pineda, Jeffrey Littlejohn, Sergio Ortega Cruz, Chester Poon, Simon Ustoyev"
+date: "September 10, 2019"
+output: html_document
+---
+
+```{r load}
+td <- read.csv('moneyball-training-data.csv')
+ed <- read.csv('moneyball-evaluation-data.csv')
+```
+
+1. Data Exploration
+
+Our dataset includes 2,276 observations, meaning performances for professional baseball teams between 1871-2006. Initially, we had 15 variables that we can use to model/predict TARGET_WINS, the number of wins a team will have. The variable TEAM_BATTING_HBP only has values for 191 of our observations, and TEAM_BASERUN_CS values were missing for 772 observations. A boxplot of the values for our variables revealed significant outliers in our TEAM_PITCHING_H and TEAM_PITCHING_SO variables.
+
+We also created a correlation matrix and correlation network to assess which variables are most useful for predicting TARGET_WINS and to explore possible multicollinearity between variables. TEAM_BATTING_H is the variable most highly correlated with TARGET_WINS. You can see this and more visually through a correlation network with variables positioned and clustered by their correlation to one another.
+
+
+```{r explore}
+library(psych)
+library(corrr)
+library(tidyr)
+library(dplyr)
+library(igraph)
+library(ggraph)
+
+td1 <- td[,2:17] #removes index variable
+
+#Summary statistics for variables
+describe(td1)
+
+#Boxplot of TARGET_WINS by each variable
+boxplot(td1)
+
+#Correlation matrix for variables
+correlation <- correlate(td1)
+correlation
+
+#Correlation network for variables
+tidy_cors <- td1 %>% 
+  correlate() %>% 
+  stretch()
+tidy_cors
+
+graph_cors <- tidy_cors %>%
+  filter(abs(r) > .3) %>%
+  graph_from_data_frame(directed = FALSE)
+
+ggraph(graph_cors) +
+  geom_edge_link(aes(edge_alpha = abs(r), edge_width = abs(r), color = r)) +
+  guides(edge_alpha = "none", edge_width = "none") +
+  scale_edge_colour_gradientn(limits = c(-1, 1), colors = c("firebrick2", "dodgerblue2")) +
+  geom_node_point(color = "grey", size = 2) +
+  geom_node_text(aes(label = name), repel = FALSE) +
+  theme_graph()
+```
+
+2. Data Preparation
+
+We transformed the data by first removing the INDEX variable since it was just an identification variable. We also removed TEAM_PITCHING_H and TEAM_PITCHING_SO since they had several outlier values based on our exploratory boxplots. TEAM_BATTING_HBP only had values for 191 (8.4%) of our performance observations, so we excluded it as well. We considered filling in missing values for the TEAM_BASERUN_CS variable with its mean value since we had values for 1504 (67%) of the observations, but decided to exclude it entirely since it had a very weak correlation (0.02) with TARGET_WINS. TEAM_FIELDING_DP also had several missing values but was weakly correlated with TARGET_WINS, so we removed it. We were thus left with 11 variables to predict TARGET_WINS.
+
+TEAM_BATTING_SO and TEAM_BASERUN_SB had a few missing values and were both somewhat correlated with TARGET_WINS, so we impute them with the average value for each respective variable.
+
+```{r transform}
+td2 <- subset(td1, select=-c(TEAM_PITCHING_H,TEAM_PITCHING_SO, TEAM_BATTING_HBP, TEAM_BASERUN_CS, TEAM_FIELDING_DP))
+meanBattingSO <- mean(td2$TEAM_BATTING_SO, na.rm = TRUE)
+td2$TEAM_BATTING_SO[which(is.na(td2$TEAM_BATTING_SO))] <- meanBattingSO
+meanBaserunSB <- mean(td2$TEAM_BASERUN_SB, na.rm = TRUE)
+td2$TEAM_BASERUN_SB[which(is.na(td2$TEAM_BASERUN_SB))] <- meanBaserunSB
+describe(td2)
+```
+
+Describe how you have transformed the data by changing the original variables or creating new variables. If you
+did transform the data or create new variables, discuss why you did this. Here are some possible transformations.
+b. Create flags to suggest if a variable was missing
+c. Transform data by putting it into buckets
+d. Mathematical transforms such as log or square root (or use Box-Cox)
+e. Combine variables (such as ratios or adding or multiplying) to create new variables
+
+3. BUILD MODELS (25 Points)
+
+Model 1:
+
+Our first model initially included all available variables to model TARGET_WINS and get an adjusted R^2 value of 0.286, meaning that our predictors explain about 30% of the variance in TARGET_WINS. We find that some of the predictors are not significant, so we returned to the correlation matrix to look for signs of collinearity in these variables (TEAM_PITCHING_HR, TEAM_BATTING_SO, TEAM_BATTING_BB). TEAM_PITCHING_BB was also not significant but we kept it because it's p-vaue was approximately close to our significance level p=0.09>0.05.
+
+a. TEAM_PITCHING_HR has a correlation coefficient of 0.96 with TEAM_BATTING_HR, and we chose to keep TEAM_PITCHING_HR since it correlates more strongly with TARGET_WINS.
+b. TEAM_BATTING_SO is strongly correlated with TEAM_PITCHING_HR but the former is less correlated with TARGET_WINS so we remove it from our model.
+c. TEAM_BATTING_BB is strongly correlated with TEAM_FIELDING_E but it correlates more with TARGET_WINS so we remove TEAM_FIELDING_E.
+
+After making these changes, our adjusted R^2 value becomes 0.246, and all predictors are significant except for TEAM_BATTING_2B, so we removed it. Our final version of model 1 uses 7 variables with all of them being significant to predict TARGET_WINS. This model has an adjusted R^2 value of 0.246.
+
+All predictors in this model influence wins as predicted except for TEAM_PITCHING_HR (homeruns allowed) which positively imacts wins when it was predicted that it would have a negative impact. We permit this in the model as its coefficient is 0.05 which is not substantially positive. The most impactful predictor to a team's number of wins is TEAM_BATTING_3B (triples by batters) which makes sense since players that get to third base after batting are very likely to score a point for their team since they would only have to run one more base.
+
+```{r model1}
+mod1a <- lm(TARGET_WINS ~ ., data=td2)
+summary(mod1a)
+
+correlation2 <- correlate(td2)
+correlation2
+
+mod1b <- lm(TARGET_WINS ~ . -TEAM_BATTING_HR-TEAM_BATTING_SO-TEAM_FIELDING_E, data=td2)
+summary(mod1b)
+
+mod1c <- lm(TARGET_WINS ~ . -TEAM_BATTING_HR-TEAM_BATTING_SO-TEAM_FIELDING_E-TEAM_BATTING_2B, data=td2)
+summary(mod1c)
+
+#plot(mod1c)
+```
+
+Model 2:
+
+For our second model, we use the same variables as those in our first model and implement a square root tranformation on TARGET_WINS. This model's adjusted R^2 increases to 0.253. We then removed 132 influential points that we identified using Cook's Distances, and our resulting model's adjusted R^2 value increased to 0.3. 
+
+The coefficients for this model tell the same story as our first model, but in this model, the predictors explain the variance in our wins better.
+
+```{r model2}
+mod2a <- lm(sqrt(TARGET_WINS) ~ . -TEAM_BATTING_HR-TEAM_BATTING_SO-TEAM_FIELDING_E-TEAM_BATTING_2B, data=td2)
+summary(mod2a)
+
+#identifying and removing influential points
+sample_size = nrow(td2)
+cooksd <- cooks.distance(mod2a)
+influential <- as.numeric(names(cooksd)[(cooksd > (4/sample_size))])
+
+#new model after removing influential points
+td3 <- td2[-influential,]
+mod2b <- lm(sqrt(TARGET_WINS) ~ . -TEAM_BATTING_HR-TEAM_BATTING_SO-TEAM_FIELDING_E-TEAM_BATTING_2B, data=td3)
+summary(mod2b)
+
+#plot(mod2a)
+```
+
+Model 3:
+
+We used forward selection to build our last model, which starts with no predictors in the model, iteratively adds the most contributive predictors, and stops when the improvement is no longer statistically significant. It has 8 variables and an adjusted R^2 of 0.286 and has all predictors as significant. 
+
+In this model, all explanatory variables behave as expected except for TEAM_BATTING_2B and TEAM_PITCHING_BB, but both of these coefficients are close enough to 0 that we can dismiss their change in sign. TEAM_BATTIG_3B has the largest influence on TARGET_WINS simiar to what we found in model 1 which makes sense as we previously discussed. It is followed by TEAM_BATTING_HR (homeruns allowed) and this follows our logic as homeruns by batters would naturally contribute to the number of wins for a team.
+
+```{r model3}
+library(MASS)
+mod3a1 <- lm(TARGET_WINS ~ ., data=td2)
+mod3a2 <- lm(TARGET_WINS ~ 1, data=td2)
+mod3a <- stepAIC(mod3a2, direction="forward", scope = list(upper=mod3a1, lower=mod3a2))
+summary(mod3a)
+```
+
+Using the training data set, build at least three different multiple linear regression models, using different variables
+(or the same variables with different transformations). Since we have not yet covered automated variable
+selection methods, you should select the variables manually (unless you previously learned Forward or Stepwise
+selection, etc.). Since you manually selected a variable for inclusion into the model or exclusion into the model,
+indicate why this was done.
+
+Discuss the coefficients in the models, do they make sense? For example, if a team hits a lot of Home Runs, it
+would be reasonably expected that such a team would win more games. However, if the coefficient is negative
+(suggesting that the team would lose more games), then that needs to be discussed. Are you keeping the model
+even though it is counter intuitive? Why? The boss needs to know.
+
+4. Select Models
+
+We will select our best multiple linear regression model based on its adjusted R^2 value, mean squared error, F-statistic and residual plots as summarized below. Model 3 has the lowest MSE and only explains 1% less of the variance in the predicted wins than model 2, the model with the highest R^2 value. The p-values associated with the F-statistic for all models are statistically significant. Model 3 has the lowest F-statistic but it is not much lower than that of the other models.
+
+RESIDUAL PLOTS NEXT
+
+```{r summary}
+library(readxl)
+library(caTools)
+library(Metrics)
+
+summary(mod1c)
+summary(mod2b)
+summary(mod3a)
+
+trainMod1WINS <- predict(mod1c, td2[,-td2$TARGET_WINS])
+trainMod2WINS <- predict(mod2b, td2[,-td2$TARGET_WINS])
+trainMod3WINS <- predict(mod3a, td2[,-td2$TARGET_WINS])
+mse1 <- mse(td2$TARGET_WINS, trainMod1WINS)
+mse2 <- mse(td2$TARGET_WINS, trainMod2WINS)
+mse3 <- mse(td2$TARGET_WINS, trainMod3WINS)
+
+adjR2Values <- c(0.2458,0.2995, 0.286)
+mseValues <- c(mse1,mse2, mse3)
+fStatValues <- c(124.6, 153.7, 114.9)
+
+summ <- cbind.data.frame(adjR2Values, mseValues, fStatValues)
+summ
+```
+
+We also predicted wins for the performances in our evaluation dataset, and model 2 predicted substantially lower wins than models 1 and 3.
+
+```{r evaluation}
+#preparing the evaluation dataset, imputating missing values similar to what we did with the training dataset
+ed1 <- ed[,2:16] #removes index variable
+ed2 <- subset(ed1, select=-c(TEAM_PITCHING_H,TEAM_PITCHING_SO, TEAM_BATTING_HBP, TEAM_BASERUN_CS, TEAM_FIELDING_DP))
+meanBattingSOed <- mean(ed2$TEAM_BATTING_SO, na.rm = TRUE)
+ed2$TEAM_BATTING_SO[which(is.na(ed2$TEAM_BATTING_SO))] <- meanBattingSOed
+meanBaserunSBed <- mean(ed2$TEAM_BASERUN_SB, na.rm = TRUE)
+ed2$TEAM_BASERUN_SB[which(is.na(ed2$TEAM_BASERUN_SB))] <- meanBaserunSBed
+describe(ed2)
+
+#predicated TARGET_WINS values for our models
+ed2$mod1WINS <- predict(mod1c, ed2)
+ed2$mod2WINS <- predict(mod2b, ed2)
+ed2$mod3WINS <- predict(mod3a, ed2)
+
+boxplot(ed2[,11:13])
+```
+
+Decide on the criteria for selecting the best multiple linear regression model. Will you select a model with slightly
+worse performance if it makes more sense or is more parsimonious? Discuss why you selected your model.
+For the multiple linear regression model, will you use a metric such as Adjusted R2, RMSE, etc.? 
+
+Be sure to
+explain how you can make inferences from the model, discuss multi-collinearity issues (if any), and discuss other
+relevant model output. Using the training data set, evaluate the multiple linear regression model based on (a)
+mean squared error, (b) R2, (c) F-statistic, and (d) residual plots. Make predictions using the evaluation data set.
