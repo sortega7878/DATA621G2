@@ -1,0 +1,511 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\hypersetup{unicode=true,
+            pdftitle={HW2},
+            pdfauthor={Chester Poon},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\usepackage{longtable,booktabs}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\newcommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+
+  \title{HW2}
+    \pretitle{\vspace{\droptitle}\centering\huge}
+  \posttitle{\par}
+    \author{Chester Poon}
+    \preauthor{\centering\large\emph}
+  \postauthor{\par}
+    \date{}
+    \predate{}\postdate{}
+  
+
+\begin{document}
+\maketitle
+
+\paragraph{1) Download the classification output data set (attached in
+Blackboard to the
+assignment).}\label{download-the-classification-output-data-set-attached-in-blackboard-to-the-assignment.}
+
+The dataset was downloaded and we load this data into a dataframe with
+the below code:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df <-}\StringTok{ }\KeywordTok{read.csv}\NormalTok{(}\StringTok{'classification-output-data.csv'}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\paragraph{2) Use the table() function to get the raw confusion matrix
+for this scored dataset. Make sure you understand the output. In
+particular, do the rows represent the actual or predicted class? The
+columns?}\label{use-the-table-function-to-get-the-raw-confusion-matrix-for-this-scored-dataset.-make-sure-you-understand-the-output.-in-particular-do-the-rows-represent-the-actual-or-predicted-class-the-columns}
+
+The below code creates our confusion matrix:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(dplyr)}
+\NormalTok{df1 <-}\StringTok{ }\NormalTok{df }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{select}\NormalTok{(scored.class,class)}
+\NormalTok{cmatrix =}\StringTok{ }\KeywordTok{table}\NormalTok{(df1)}
+\NormalTok{cmatrix}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##             class
+## scored.class   0   1
+##            0 119  30
+##            1   5  27
+\end{verbatim}
+
+The class columns are the actual/observed, while the scored.class rows
+are the predicted.
+
+\paragraph{3) Write a function that takes the data set as a dataframe,
+with actual and predicted classifications identified, and returns the
+accuracy of the
+predictions.}\label{write-a-function-that-takes-the-data-set-as-a-dataframe-with-actual-and-predicted-classifications-identified-and-returns-the-accuracy-of-the-predictions.}
+
+The below code coverts our matrix into a dataframe:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{cmatrix <-}\StringTok{ }\KeywordTok{as.data.frame.matrix}\NormalTok{(cmatrix)}
+\NormalTok{knitr}\OperatorTok{::}\KeywordTok{kable}\NormalTok{(cmatrix)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[]{@{}lrr@{}}
+\toprule
+& 0 & 1\tabularnewline
+\midrule
+\endhead
+0 & 119 & 30\tabularnewline
+1 & 5 & 27\tabularnewline
+\bottomrule
+\end{longtable}
+
+And now we create our function that takes in the confusion matrix as a
+dataframe and returns the accuracy of the predictions:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{acc <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(x) \{}
+\NormalTok{  (x[}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{] }\OperatorTok{+}\StringTok{ }\NormalTok{x[}\DecValTok{2}\NormalTok{,}\DecValTok{2}\NormalTok{])}\OperatorTok{/}\KeywordTok{sum}\NormalTok{(x)}
+\NormalTok{\}}
+\KeywordTok{acc}\NormalTok{(cmatrix)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.8066298
+\end{verbatim}
+
+\paragraph{4) Write a function that takes the data set as a dataframe,
+with actual and predicted classifications identified, and returns the
+classification error rate of the
+predictions.}\label{write-a-function-that-takes-the-data-set-as-a-dataframe-with-actual-and-predicted-classifications-identified-and-returns-the-classification-error-rate-of-the-predictions.}
+
+The function that returns a classification error rate is below:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{class_err <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(x) \{}
+\NormalTok{  (x[}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{] }\OperatorTok{+}\StringTok{ }\NormalTok{x[}\DecValTok{2}\NormalTok{,}\DecValTok{1}\NormalTok{])}\OperatorTok{/}\KeywordTok{sum}\NormalTok{(x)}
+\NormalTok{\}}
+\KeywordTok{class_err}\NormalTok{(cmatrix)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.1933702
+\end{verbatim}
+
+\paragraph{Verify that you get an accuracy and an error rate that sums
+to
+one.}\label{verify-that-you-get-an-accuracy-and-an-error-rate-that-sums-to-one.}
+
+When we add the accuracy with the error rate we get 1:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{class_err}\NormalTok{(cmatrix) }\OperatorTok{+}\StringTok{ }\KeywordTok{acc}\NormalTok{(cmatrix)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 1
+\end{verbatim}
+
+\paragraph{5) Write a function that takes the data set as a dataframe,
+with actual and predicted classifications identified, and returns the
+precision of the
+predictions.}\label{write-a-function-that-takes-the-data-set-as-a-dataframe-with-actual-and-predicted-classifications-identified-and-returns-the-precision-of-the-predictions.}
+
+The function that returns the precision:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{prec <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(x) \{}
+\NormalTok{  x[}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{]}\OperatorTok{/}\NormalTok{(x[}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{] }\OperatorTok{+}\StringTok{ }\NormalTok{x[}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{])}
+\NormalTok{\}}
+\KeywordTok{prec}\NormalTok{(cmatrix)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.7986577
+\end{verbatim}
+
+\paragraph{6) Write a function that takes the data set as a dataframe,
+with actual and predicted classifications identified, and returns the
+sensitivity of the predictions. Sensitivity is also known as
+recall.}\label{write-a-function-that-takes-the-data-set-as-a-dataframe-with-actual-and-predicted-classifications-identified-and-returns-the-sensitivity-of-the-predictions.-sensitivity-is-also-known-as-recall.}
+
+Sensitivity:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{sensitivity <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(x) \{}
+\NormalTok{  x[}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{]}\OperatorTok{/}\NormalTok{(x[}\DecValTok{1}\NormalTok{,}\DecValTok{1}\NormalTok{] }\OperatorTok{+}\StringTok{ }\NormalTok{x[}\DecValTok{2}\NormalTok{,}\DecValTok{1}\NormalTok{])}
+\NormalTok{\}}
+\KeywordTok{sensitivity}\NormalTok{(cmatrix)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.9596774
+\end{verbatim}
+
+\paragraph{7) Write a function that takes the data set as a dataframe,
+with actual and predicted classifications identified, and returns the
+specificity of the
+predictions.}\label{write-a-function-that-takes-the-data-set-as-a-dataframe-with-actual-and-predicted-classifications-identified-and-returns-the-specificity-of-the-predictions.}
+
+Specificity:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{specificity <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(x) \{}
+\NormalTok{  x[}\DecValTok{2}\NormalTok{,}\DecValTok{2}\NormalTok{]}\OperatorTok{/}\NormalTok{(x[}\DecValTok{2}\NormalTok{,}\DecValTok{2}\NormalTok{] }\OperatorTok{+}\StringTok{ }\NormalTok{x[}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{])}
+\NormalTok{\}}
+\KeywordTok{specificity}\NormalTok{(cmatrix)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.4736842
+\end{verbatim}
+
+\paragraph{8) Write a function that takes the data set as a dataframe,
+with actual and predicted classifications identified, and returns the F1
+score of the
+predictions.}\label{write-a-function-that-takes-the-data-set-as-a-dataframe-with-actual-and-predicted-classifications-identified-and-returns-the-f1-score-of-the-predictions.}
+
+We can actually use some of our previously created functions to create
+this function.
+
+F1-Score:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{f1 <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(x) \{}
+\NormalTok{  (}\DecValTok{2}\OperatorTok{*}\KeywordTok{prec}\NormalTok{(x)}\OperatorTok{*}\KeywordTok{sensitivity}\NormalTok{(x))}\OperatorTok{/}\NormalTok{(}\KeywordTok{prec}\NormalTok{(x) }\OperatorTok{+}\StringTok{ }\KeywordTok{sensitivity}\NormalTok{(x))}
+\NormalTok{\}}
+\KeywordTok{f1}\NormalTok{(cmatrix)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.8717949
+\end{verbatim}
+
+\paragraph{9) Before we move on, let's consider a question that was
+asked: What are the bounds on the F1 score? Show that the F1 score will
+always be between 0 and 1. (Hint: If 0 \textless{} 𝑎 \textless{} 1 and 0
+\textless{} 𝑏 \textless{} 1 then 𝑎𝑏 \textless{}
+𝑎.)}\label{before-we-move-on-lets-consider-a-question-that-was-asked-what-are-the-bounds-on-the-f1-score-show-that-the-f1-score-will-always-be-between-0-and-1.-hint-if-0--1-and-0--1-then--.}
+
+Because both precision and sensitivity will always be between 0 and 1,
+if you use the upper and lower bounds of precision and sensivity, you
+will always get a number between 0 and 1 from the formula for F1 score.
+
+\paragraph{10) Write a function that generates an ROC curve from a data
+set with a true classification column (class in our example) and a
+probability column (scored.probability in our example). Your function
+should return a list that includes the plot of the ROC curve and a
+vector that contains the calculated area under the curve (AUC). Note
+that I recommend using a sequence of thresholds ranging from 0 to 1 at
+0.01
+intervals.}\label{write-a-function-that-generates-an-roc-curve-from-a-data-set-with-a-true-classification-column-class-in-our-example-and-a-probability-column-scored.probability-in-our-example.-your-function-should-return-a-list-that-includes-the-plot-of-the-roc-curve-and-a-vector-that-contains-the-calculated-area-under-the-curve-auc.-note-that-i-recommend-using-a-sequence-of-thresholds-ranging-from-0-to-1-at-0.01-intervals.}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{roc <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(actual, scores)\{}
+\NormalTok{  actual <-}\StringTok{ }\NormalTok{actual[}\KeywordTok{order}\NormalTok{(scores, }\DataTypeTok{decreasing=}\OtherTok{TRUE}\NormalTok{)]}
+  \KeywordTok{plot}\NormalTok{(}\KeywordTok{cumsum}\NormalTok{(}\OperatorTok{!}\NormalTok{actual)}\OperatorTok{/}\KeywordTok{sum}\NormalTok{(}\OperatorTok{!}\NormalTok{actual),}
+       \KeywordTok{cumsum}\NormalTok{(actual)}\OperatorTok{/}\KeywordTok{sum}\NormalTok{(actual), }
+       \DataTypeTok{type=}\StringTok{'l'}\NormalTok{,}
+       \DataTypeTok{xlab =} \StringTok{"False Positive Rate"}\NormalTok{,}
+       \DataTypeTok{ylab =} \StringTok{"True Positive Rate"}\NormalTok{)}
+\NormalTok{  f <-}\StringTok{ }\KeywordTok{approxfun}\NormalTok{(}\KeywordTok{cumsum}\NormalTok{(}\OperatorTok{!}\NormalTok{actual)}\OperatorTok{/}\KeywordTok{sum}\NormalTok{(}\OperatorTok{!}\NormalTok{actual),}
+                 \KeywordTok{cumsum}\NormalTok{(actual)}\OperatorTok{/}\KeywordTok{sum}\NormalTok{(actual))}
+\NormalTok{  C <-}\StringTok{ }\KeywordTok{integrate}\NormalTok{(f, }
+                 \KeywordTok{min}\NormalTok{(}\KeywordTok{cumsum}\NormalTok{(actual)}\OperatorTok{/}\KeywordTok{sum}\NormalTok{(actual)), }
+                 \KeywordTok{max}\NormalTok{(}\KeywordTok{cumsum}\NormalTok{(actual)}\OperatorTok{/}\KeywordTok{sum}\NormalTok{(actual)))}\OperatorTok{$}\NormalTok{value}
+  \KeywordTok{paste}\NormalTok{(}\StringTok{"AUC = "}\NormalTok{,C)}
+\NormalTok{\}}
+
+\KeywordTok{roc}\NormalTok{(df}\OperatorTok{$}\NormalTok{class,df}\OperatorTok{$}\NormalTok{scored.probability)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{hw2_files/figure-latex/unnamed-chunk-11-1.pdf}
+
+\begin{verbatim}
+## [1] "AUC =  0.846480454012587"
+\end{verbatim}
+
+\paragraph{11) Use your created R functions and the provided
+classification output data set to produce all of the classification
+metrics discussed
+above.}\label{use-your-created-r-functions-and-the-provided-classification-output-data-set-to-produce-all-of-the-classification-metrics-discussed-above.}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{metric <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\StringTok{"Accuracy"}\NormalTok{,}\StringTok{"Classification Error"}\NormalTok{,}\StringTok{"Precision"}\NormalTok{,}\StringTok{"Sensitivity"}\NormalTok{,}\StringTok{"Specificity"}\NormalTok{,}\StringTok{"F1-Score"}\NormalTok{)}
+
+\NormalTok{values <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\KeywordTok{acc}\NormalTok{(cmatrix),}
+            \KeywordTok{class_err}\NormalTok{(cmatrix),}
+            \KeywordTok{prec}\NormalTok{(cmatrix),}
+            \KeywordTok{sensitivity}\NormalTok{(cmatrix),}
+            \KeywordTok{specificity}\NormalTok{(cmatrix),}
+            \KeywordTok{f1}\NormalTok{(cmatrix))}
+
+\NormalTok{metric_df <-}\StringTok{ }\KeywordTok{data.frame}\NormalTok{(metric,values)}
+\KeywordTok{names}\NormalTok{(metric_df) <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\StringTok{"Metric"}\NormalTok{,}\StringTok{"Values"}\NormalTok{)}
+
+\NormalTok{knitr}\OperatorTok{::}\KeywordTok{kable}\NormalTok{(metric_df)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[]{@{}lr@{}}
+\toprule
+Metric & Values\tabularnewline
+\midrule
+\endhead
+Accuracy & 0.8066298\tabularnewline
+Classification Error & 0.1933702\tabularnewline
+Precision & 0.7986577\tabularnewline
+Sensitivity & 0.9596774\tabularnewline
+Specificity & 0.4736842\tabularnewline
+F1-Score & 0.8717949\tabularnewline
+\bottomrule
+\end{longtable}
+
+\paragraph{12) Investigate the caret package. In particular, consider
+the functions confusionMatrix, sensitivity, and specificity. Apply the
+functions to the data set. How do the results compare with your own
+functions?}\label{investigate-the-caret-package.-in-particular-consider-the-functions-confusionmatrix-sensitivity-and-specificity.-apply-the-functions-to-the-data-set.-how-do-the-results-compare-with-your-own-functions}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(caret)}
+\KeywordTok{confusionMatrix}\NormalTok{(}\KeywordTok{factor}\NormalTok{(df1}\OperatorTok{$}\NormalTok{scored.class),}\KeywordTok{factor}\NormalTok{(df1}\OperatorTok{$}\NormalTok{class))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction   0   1
+##          0 119  30
+##          1   5  27
+##                                           
+##                Accuracy : 0.8066          
+##                  95% CI : (0.7415, 0.8615)
+##     No Information Rate : 0.6851          
+##     P-Value [Acc > NIR] : 0.0001712       
+##                                           
+##                   Kappa : 0.4916          
+##  Mcnemar's Test P-Value : 4.976e-05       
+##                                           
+##             Sensitivity : 0.9597          
+##             Specificity : 0.4737          
+##          Pos Pred Value : 0.7987          
+##          Neg Pred Value : 0.8438          
+##              Prevalence : 0.6851          
+##          Detection Rate : 0.6575          
+##    Detection Prevalence : 0.8232          
+##       Balanced Accuracy : 0.7167          
+##                                           
+##        'Positive' Class : 0               
+## 
+\end{verbatim}
+
+The values above from the \texttt{confusionMatrix} return identical
+values as the manually created functions from earlier.
+
+The below two functions from the \texttt{caret} package returns the same
+sensitivity and specificity outputs as the \texttt{confusionMatrix}
+function above.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{caret}\OperatorTok{::}\KeywordTok{sensitivity}\NormalTok{(}\KeywordTok{factor}\NormalTok{(df1}\OperatorTok{$}\NormalTok{scored.class),}\KeywordTok{factor}\NormalTok{(df1}\OperatorTok{$}\NormalTok{class))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.9596774
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{caret}\OperatorTok{::}\KeywordTok{specificity}\NormalTok{(}\KeywordTok{factor}\NormalTok{(df1}\OperatorTok{$}\NormalTok{scored.class),}\KeywordTok{factor}\NormalTok{(df1}\OperatorTok{$}\NormalTok{class))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.4736842
+\end{verbatim}
+
+\paragraph{13) Investigate the pROC package. Use it to generate an ROC
+curve for the data set. How do the results compare with your own
+functions?}\label{investigate-the-proc-package.-use-it-to-generate-an-roc-curve-for-the-data-set.-how-do-the-results-compare-with-your-own-functions}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(pROC)}
+\KeywordTok{par}\NormalTok{(}\DataTypeTok{pty=}\StringTok{"s"}\NormalTok{)}
+\NormalTok{pROC}\OperatorTok{::}\KeywordTok{roc}\NormalTok{(df}\OperatorTok{$}\NormalTok{class,df}\OperatorTok{$}\NormalTok{scored.probability,}
+          \DataTypeTok{plot=}\OtherTok{TRUE}\NormalTok{, }
+          \DataTypeTok{legacy.axes=}\OtherTok{TRUE}\NormalTok{,}
+          \DataTypeTok{print.auc=}\OtherTok{TRUE}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{hw2_files/figure-latex/unnamed-chunk-15-1.pdf}
+
+\begin{verbatim}
+## 
+## Call:
+## roc.default(response = df$class, predictor = df$scored.probability,     plot = TRUE, legacy.axes = TRUE, print.auc = TRUE)
+## 
+## Data: df$scored.probability in 124 controls (df$class 0) < 57 cases (df$class 1).
+## Area under the curve: 0.8503
+\end{verbatim}
+
+The ROC curves appear identical and the AUC values are approximately the
+same.
+
+
+\end{document}
