@@ -1,0 +1,260 @@
+---
+title: 'Homework 1: MoneyBall'
+author: "Omar Pineda, Jeffrey Littlejohn, Sergio Ortega Cruz, Chester Poon, Simon Ustoyev"
+date: "September 25, 2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r load, include=FALSE}
+library(psych)
+library(corrr)
+library(tidyr)
+library(dplyr)
+library(igraph)
+library(ggraph)
+library(readxl)
+library(caTools)
+library(Metrics)
+library(MASS)
+td <- read.csv('https://raw.githubusercontent.com/sortega7878/DATA621G2/master/HW1/moneyball-training-data.csv')
+ed <- read.csv('https://raw.githubusercontent.com/sortega7878/DATA621G2/master/HW1/moneyball-evaluation-data.csv')
+```
+
+### 1. Data Exploration
+
+Our dataset includes 2,276 observations, meaning performances for professional baseball teams between the years 1871-2006. Initially, we had 15 variables that we could use to model/predict TARGET_WINS, the number of wins a team will have. The variable TEAM_BATTING_HBP only has values for 191 of our observations, and TEAM_BASERUN_CS values were missing for 772 observations. Some other variables were missing a neglible number of values. A boxplot of the values for our variables revealed outliers in our TEAM_PITCHING_H and TEAM_PITCHING_SO variables.
+
+```{r explore, echo=FALSE, message=FALSE, warning = FALSE, error=FALSE}
+#1. Data Exploration
+td1 <- td[,2:17] #removes index variable from training dataset
+#Summary statistics for variables
+describe(td1)
+#Boxplot of TARGET_WINS by each variable in order to see outliers
+boxplot(td1)
+```
+
+We also created a correlation matrix and correlation network to assess which variables are most useful for predicting TARGET_WINS and to explore possible multicollinearity between variables. TEAM_BATTING_H is the variable most highly correlated with TARGET_WINS. We visualized this and more through a correlation network with variables positioned and clustered by their correlation to one another. Red edges indicate negative correlations while blue ones indicate positive correlations.
+
+```{r explore2, echo=FALSE, message=FALSE, warning = FALSE, error=FALSE}
+#Correlation matrix for variables
+correlation <- correlate(td1)
+correlation
+#Correlation network for variables
+tidy_cors <- td1 %>% 
+  correlate() %>% 
+  stretch()
+tidy_cors
+graph_cors <- tidy_cors %>%
+  filter(abs(r) > .3) %>%
+  graph_from_data_frame(directed = FALSE)
+ggraph(graph_cors) +
+  geom_edge_link(aes(edge_alpha = abs(r), edge_width = abs(r), color = r)) +
+  guides(edge_alpha = "none", edge_width = "none") +
+  scale_edge_colour_gradientn(limits = c(-1, 1), colors = c("firebrick2", "dodgerblue2")) +
+  geom_node_point(color = "grey", size = 2) +
+  geom_node_text(aes(label = name), repel = FALSE) +
+  theme_graph()
+```
+
+### 2. Data Preparation
+
+We transformed the data by first removing the INDEX variable since it was just an identification variable. We also removed TEAM_PITCHING_H and TEAM_PITCHING_SO since they had several outlier values based on our exploratory boxplots. TEAM_BATTING_HBP only had values for 191 (8.4%) of our performance observations, so we excluded it as well. We considered filling in missing values for the TEAM_BASERUN_CS variable with its mean value since we had values for 1504 (67%) of the observations, but decided to exclude it entirely since it had a very weak correlation (0.02) with TARGET_WINS. TEAM_FIELDING_DP also had several missing values but was weakly correlated with TARGET_WINS, so we removed it. We were thus left with 11 explanatory variables to predict TARGET_WINS.
+
+TEAM_BATTING_SO and TEAM_BASERUN_SB had a few missing values and were both somewhat correlated with TARGET_WINS, so we imputed them with the average value for each respective variable.
+
+```{r transform, echo=FALSE, message=FALSE, warning = FALSE, error=FALSE}
+#2. Data Preparation
+td2 <- subset(td1, select=-c(TEAM_PITCHING_H,TEAM_PITCHING_SO, TEAM_BATTING_HBP, TEAM_BASERUN_CS, TEAM_FIELDING_DP))
+meanBattingSO <- mean(td2$TEAM_BATTING_SO, na.rm = TRUE)
+td2$TEAM_BATTING_SO[which(is.na(td2$TEAM_BATTING_SO))] <- meanBattingSO
+meanBaserunSB <- mean(td2$TEAM_BASERUN_SB, na.rm = TRUE)
+td2$TEAM_BASERUN_SB[which(is.na(td2$TEAM_BASERUN_SB))] <- meanBaserunSB
+#describe(td2)
+```
+
+For use with our 4th model, we expanded on this data preparation by creating a new variable (TEAM_BATTING_1B) to isolate the number of singles by subtracting the doubles, triples and homeruns from the total number of base hits by batters (TEAM_BATTING_H). We then grouped together the singles with the doubles, as well as the triples with the homeruns. After creating these groups, we removed TEAM_BATTING_H, TEAM_BATTING_1B, TEAM_BATTING_2B, TEAM_BATTING_3B and TEAM_BATTING_HR.
+
+```{r transform2, echo=FALSE, message=FALSE, warning = FALSE, error=FALSE}
+#Creating a new variable for base hits
+td3 <- td2
+td3$TEAM_BATTING_1B <- td3$TEAM_BATTING_H - (td3$TEAM_BATTING_2B + td3$TEAM_BATTING_3B + td3$TEAM_BATTING_HR)
+td3$TEAM_BATTING_1B2B <- td3$TEAM_BATTING_1B + td3$TEAM_BATTING_2B
+td3$TEAM_BATTING_3BHR <- td3$TEAM_BATTING_3B + td3$TEAM_BATTING_HR
+td4 <- subset(td3, select=-c(TEAM_BATTING_H, TEAM_BATTING_1B, TEAM_BATTING_2B, TEAM_BATTING_3B, TEAM_BATTING_HR))
+```
+
+### 3. Build Models
+
+We built 3 different models to predict TARGET_WINS.
+
+Model 1:
+
+Our first model initially included all available variables to model TARGET_WINS and it produced an adjusted R^2 value of 0.286, meaning that our predictors explain about 30% of the variance in TARGET_WINS. We found that some of the predictors were not significant, so we returned to our correlation matrix to look for signs of collinearity in these variables (TEAM_PITCHING_HR, TEAM_BATTING_SO, TEAM_BATTING_BB). TEAM_PITCHING_BB was also not significant but we kept it because it's p-vaue was approximate to our significance level p=0.09>0.05.
+
+```{r model1, echo=FALSE, message=FALSE, warning = FALSE, error=FALSE}
+#3. Build Models
+#Model 1
+mod1a <- lm(TARGET_WINS ~ ., data=td2)
+summary(mod1a)
+correlation2 <- correlate(td2)
+correlation2
+```
+
+a. TEAM_PITCHING_HR has a correlation coefficient of 0.96 with TEAM_BATTING_HR, and out of the two we chose to keep TEAM_PITCHING_HR since it correlates more strongly with TARGET_WINS.
+b. TEAM_BATTING_SO is strongly correlated with TEAM_PITCHING_HR but the former is less correlated with TARGET_WINS so we remove it from our model.
+c. TEAM_BATTING_BB is strongly correlated with TEAM_FIELDING_E but it correlates more with TARGET_WINS so we remove TEAM_FIELDING_E.
+
+After making these changes, our adjusted R^2 value becomes 0.246, and all predictors are significant except for TEAM_BATTING_2B, so we decided to remove it. Our final version of model 1 uses 7 variables with all of them being significant to predict TARGET_WINS. This model has an adjusted R^2 value of 0.246.
+
+```{r model1b, echo=FALSE, message=FALSE, warning = FALSE, error=FALSE}
+mod1b <- lm(TARGET_WINS ~ . -TEAM_BATTING_HR-TEAM_BATTING_SO-TEAM_FIELDING_E, data=td2)
+summary(mod1b)
+mod1c <- lm(TARGET_WINS ~ . -TEAM_BATTING_HR-TEAM_BATTING_SO-TEAM_FIELDING_E-TEAM_BATTING_2B, data=td2)
+summary(mod1c)
+#plot(mod1c)
+```
+All predictors in this model influence wins as initially assumed except for TEAM_PITCHING_HR (homeruns allowed) which positively impacts wins when it was predicted that it would have a negative impact. We permit this in the model as its coefficient is 0.05 which is not substantially positive. The most impactful predictor to a team's number of wins is TEAM_BATTING_3B (triples by batters) which makes sense since players that make it to the third base after batting are very likely to score a point for their team since they would only have to run one more base.
+
+Model 2:
+
+For our second model, we use the same variables as those in our first model and implement a square root tranformation on TARGET_WINS. This model's adjusted R^2 increases to 0.253. We then removed 132 influential points that we identified using Cook's Distances, and our resulting model's adjusted R^2 value increased to 0.3. 
+
+```{r model2, echo=FALSE, message=FALSE, warning = FALSE, error=FALSE}
+#Model 2
+mod2a <- lm(sqrt(TARGET_WINS) ~ . -TEAM_BATTING_HR-TEAM_BATTING_SO-TEAM_FIELDING_E-TEAM_BATTING_2B, data=td2)
+summary(mod2a)
+#identifying and removing influential points
+sample_size = nrow(td2)
+cooksd <- cooks.distance(mod2a)
+influential <- as.numeric(names(cooksd)[(cooksd > (4/sample_size))])
+#new model after removing influential points
+td3 <- td2[-influential,]
+mod2b <- lm(sqrt(TARGET_WINS) ~ . -TEAM_BATTING_HR-TEAM_BATTING_SO-TEAM_FIELDING_E-TEAM_BATTING_2B, data=td3)
+summary(mod2b)
+#plot(mod2a)
+```
+
+The coefficients for this model tell the same story as those in our first model, but in this model, the predictors explain the variance in our wins better.
+
+Model 3:
+
+We used forward selection to build third model, which starts with no predictors in the model, iteratively adds the most contributive predictors, and stops when the improvement is no longer statistically significant. It has 8 variables and an adjusted R^2 of 0.285. All predictors are significant. 
+
+In this model, all explanatory variables behave as expected except for TEAM_BATTING_2B and TEAM_PITCHING_BB, but both of these coefficients are close enough to 0 that we can dismiss their change in sign. TEAM_BATTING_3B has the largest influence on TARGET_WINS, similar to what we found in model 1 which makes sense as we previously discussed. It is followed by TEAM_BATTING_HR (homeruns by batters) and this follows our logic as homeruns by batters would naturally contribute to the number of wins for a team.
+
+```{r model3, echo=FALSE, message=FALSE, warning = FALSE, error=FALSE}
+#Model 3
+mod3a1 <- lm(TARGET_WINS ~ ., data=td2)
+mod3a2 <- lm(TARGET_WINS ~ 1, data=td2)
+mod3a <- stepAIC(mod3a2, direction="forward", scope = list(upper=mod3a1, lower=mod3a2))
+summary(mod3a)
+```
+
+Model 4:
+
+We also used forward selection to build one more model with the dataset that groups singles with doubles and triples with homeruns. It has 9 variables and an adjusted R^2 of 0.283. 5 of the predictors were significant.
+
+While the grouping variables that we created were significant, they made TEAM_BATTING_BB, TEAM_BATTING_SO and TEAM_PITCHING_BB to become not significant, which is not as good as our forward selection without these groupings in Model 3.
+
+```{r model4, echo=FALSE, message=FALSE, warning = FALSE, error=FALSE}
+#Model 4
+mod4a1 <- lm(TARGET_WINS ~ ., data=td4)
+mod4a2 <- lm(TARGET_WINS ~ 1, data=td4)
+mod4a <- stepAIC(mod4a2, direction="forward", scope = list(upper=mod4a1, lower=mod4a2))
+summary(mod4a)
+```
+
+### 4. Select Models
+
+We selected our best multiple linear regression model based on its adjusted R^2 value, mean squared error, F-statistic and residual plots as shown below. 
+
+First, we summarize our four models.
+
+```{r summary, echo=FALSE, message=FALSE, warning = FALSE, error=FALSE}
+#4. Select Models
+#Summary of 3 models
+summary(mod1c)
+summary(mod2b)
+summary(mod3a)
+summary(mod4a)
+```
+
+Next, we assess our models based on some statistics. The residuals for all three models appear to be normally distributed. The p-values associated with the F-statistic for all models are statistically significant. Some coefficients in Model 4 were not significant, so we eliminated it from the running. Model 3 has the lowest MSE and only explains 1% less of the variance in the predicted wins than model 2, the model with the highest R^2 value. Model 3 has the lowest F-statistic but it is not much lower than that of the other models. We thus chose model 3, our forward selection model without batting groupings, as our best method of modeling/predicting the number of wins that a team would have.
+
+```{r summary2, echo=FALSE, message=FALSE, warning = FALSE, error=FALSE}
+#Calculate MSE
+trainMod1WINS <- predict(mod1c, td2[,-td2$TARGET_WINS])
+trainMod2WINS <- predict(mod2b, td2[,-td2$TARGET_WINS])
+trainMod3WINS <- predict(mod3a, td2[,-td2$TARGET_WINS])
+trainMod4WINS <- predict(mod4a, td4[,-td4$TARGET_WINS])
+mse1 <- mse(td2$TARGET_WINS, trainMod1WINS)
+mse2 <- mse(td2$TARGET_WINS, trainMod2WINS)
+mse3 <- mse(td2$TARGET_WINS, trainMod3WINS)
+mse4 <- mse(td4$TARGET_WINS, trainMod4WINS)
+#Create a table comparing different metrics for the models
+model <- c("Model 1", "Model 2", "Model 3", "Model 4")
+adjR2Values <- c(0.2458,0.2995, 0.285, 0.283)
+mseValues <- c(mse1,mse2, mse3, mse4)
+fStatValues <- c(124.6, 153.7, 114.9, 100.8)
+summ <- cbind.data.frame(model, adjR2Values, mseValues, fStatValues)
+summ
+#Residual plots of 3 models to assess normality
+#Model 1
+plot(fitted(mod1c), residuals(mod1c), xlab = "Fitted Value", ylab = "Residual")
+qqnorm(resid(mod1c))
+qqline(resid(mod1c))
+#Model 2
+plot(fitted(mod2b), residuals(mod2b), xlab = "Fitted Value", ylab = "Residual")
+qqnorm(resid(mod2b))
+qqline(resid(mod2b))
+#Model 3
+plot(fitted(mod3a), residuals(mod3a), xlab = "Fitted Value", ylab = "Residual")
+qqnorm(resid(mod3a))
+qqline(resid(mod3a))
+#Model 4
+plot(fitted(mod4a), residuals(mod4a), xlab = "Fitted Value", ylab = "Residual")
+qqnorm(resid(mod4a))
+qqline(resid(mod4a))
+```
+
+As previously discussed, all explanatory variables in our best performing model (Model 3) behave as expected except for TEAM_BATTING_2B and TEAM_PITCHING_BB, but both of these coefficients are close enough to 0 that we can dismiss their change in sign. 
+
+The equation of this model is as follows:
+
+TARGET WINS = 0.08*TEAMBATTING3B + 0.05*TEAMBATTINGHR + 0.05*TEAMBATTINGH + 0.03*TEAMBASERUNSB - 0.02*TEAMFIELDINGE - 0.02* TEAMBATTING2B - 0.01*TEAMPITCHINGHR + 0.004*TEAMPITCHINGBB
+
+In order of decreasing magnitude of effect on TARGET_WINS: TEAM_BATTING_3B (triples by batters) has the largest influence on TARGET_WINS and it is followed by TEAM_BATTING_HR (homeruns by batters) and this follows our logic as those who bat and get to third base as well as those who hit homeruns would naturally contribute to the number of wins for a team. Next, TEAMBATTINGH (base hits by batters) has a positive influence on wins because the odds of scoring points increase with every player that we have on a base. TEAM_BASERUN_SB (stolen bases) also increase our number of wins because stealing bases gets the team closer to scoring points. TEAM_FIELDING_E (errors) has a negative effect on wins because errors tend to lead to the opposing team scoring a point. TEAM_BATTING_2B (doubles by batters) has an unexpected slightly negative effect on wins, but this effect is negligible. TEAM_PITCHING_HR (homeruns allowed) decrease wins because the opposing team scores a point. Lastly, TEAM_PITCHING_BB (walks allowed) has an unexpectedly positive effect on wins, but it is nearly non-existent.
+
+We hope that this model is useful for predicting the number of wins that a team will have based on their performance in a given season. An application of this could be in the pricing of tickets for baseball games based on the number of predicted wins for the home team. Stakeholders could also use this model to project wins for two opposing teams in order to inform their prediction of who would win a game.
+
+Finally, we also predicted wins for the performances in an evaluation dataset. We prepared the evaluation dataset in a similar way to how we prepared the training dataset, and then we predicted wins using Model 3, and saved those in a new column called mod3WINS. A preview of this table is shown below:
+
+```{r evaluation, echo=FALSE, message=FALSE, warning = FALSE, error=FALSE}
+#preparing the evaluation dataset, imputating missing values similar to what we did with the training dataset
+#ed1 <- ed[,2:16] #removes index variable
+ed2 <- subset(ed, select=-c(TEAM_PITCHING_H,TEAM_PITCHING_SO, TEAM_BATTING_HBP, TEAM_BASERUN_CS, TEAM_FIELDING_DP))
+meanBattingSOed <- mean(ed2$TEAM_BATTING_SO, na.rm = TRUE)
+ed2$TEAM_BATTING_SO[which(is.na(ed2$TEAM_BATTING_SO))] <- meanBattingSOed
+meanBaserunSBed <- mean(ed2$TEAM_BASERUN_SB, na.rm = TRUE)
+ed2$TEAM_BASERUN_SB[which(is.na(ed2$TEAM_BASERUN_SB))] <- meanBaserunSBed
+#describe(ed2)
+#predicted TARGET_WINS values for our models
+#ed2$mod1WINS <- predict(mod1c, ed2[2:11])
+#ed2$mod2WINS <- predict(mod2b, ed2[2:11])
+ed2$mod3WINS <- predict(mod3a, ed2[2:11])
+head(ed2)
+#boxplot(ed2[,12:14])
+```
+
+The predicted wins for our complete evaluation dataset are attached in a .csv file.
+
+```{r predictions, echo=FALSE, message=FALSE, warning = FALSE, error=FALSE}
+#output evaluation dataset with model win predictions
+write.csv(ed2, 'moneyball-evaluation-data-model-predictions.csv')
+```
+
+### Appendix 
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+```
