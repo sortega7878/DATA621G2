@@ -1,0 +1,189 @@
+---
+title: 'Data 621 Group 2 HW 4: Insurance'
+author: 'Members: Omar Pineda, Jeff Littlejohn, Sergio Ortega Cruz, Chester Poon,
+  Simon Ustoyev'
+date: "11/15/2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r libs, message=FALSE, warning=FALSE}
+library(knitr)
+library(kableExtra)
+library(tidyverse)
+library(corrplot)
+```
+
+
+```{r load_data}
+url <- './insurance_training_data.csv'
+df <- read.csv(url, header = TRUE, row.names = 'INDEX')
+```
+
+It is helpful to get a glimpse of the data in a table format
+```{r explr_1.1}
+kable(df[1:15,]) %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+summary(df)
+```
+### Data Clean-up and Missing values
+The summary on the data identified the following variables with missing values  
+1. Age (6)  
+2. YOJ (454)  
+3. CAR_AGE (510)  
+4. INCOME(445)  
+5. HOME_VAL(464)  
+
+#### AGE Missing Values
+Assigning a medium age would be appropriate given that there are only 6 records with missing values and those records either indicates having kids at home or being married.
+```{r}
+df %>% filter(is.na(AGE)) %>% select(MSTATUS, HOMEKIDS)
+summary(df$AGE)
+median_age <- summary(df$AGE)[['Median']]
+df[is.na(df$AGE),]['AGE'] <- median_age
+summary(df$AGE)
+```
+
+
+#### YOJ (Years on Job) Missing values
+For the `YOJ` variable it would make sense to assign median values per Job type rather than just the overall median value. As you can see from the plot below, not all job types have similar median values.
+```{r}
+plot(YOJ ~ JOB, df)
+```
+
+
+```{r}
+aggregate(YOJ ~ JOB, df, median)
+summary(df$JOB)
+df$JOB <- fct_recode(df$JOB, 'UNKNOWN' = '')
+summary(df$JOB)
+
+df_tmp <- df %>% group_by(JOB) %>% 
+  mutate(NEW_YOJ = median(YOJ, na.rm = TRUE)) %>% 
+  select(JOB, YOJ, NEW_YOJ)
+
+df[is.na(df$YOJ),]$YOJ <- df_tmp[is.na(df_tmp$YOJ),]$NEW_YOJ
+summary(df$YOJ)
+```
+
+
+#### Car Age Missing Values
+Car age also have some invalid negative values.  We can assign them to `NA` and then deal with them as missing values.
+```{r}
+df$CAR_AGE[which(df$CAR_AGE < 0)] <- NA
+summary(df$CAR_AGE)
+```
+
+To deal with missing values of `CAR_AGE` it may be a good idea to find a correlation with `BLUEBOOK` value and derive approximate values for the age.  However, for this we would require  knowing the make and model of the cars.  Given that this information is not available to us and that it is considerable number of rows with the missing values, it may be best to simply asign median age.
+```{r}
+median_car_age <- summary(df$CAR_AGE)[['Median']]
+df[is.na(df$CAR_AGE),]['CAR_AGE'] <- median_car_age
+summary(df$CAR_AGE)
+```
+
+
+#### INCOME Missing values
+By default the income data was read as factors because of `$` currency symbol.  We need to convert it to numerical values.  By looking at the structure of the data frame `str(df)` it turns out that there are other similar columns which need to be converted as well.
+```{r}
+str(df)
+
+# INCOME
+class(df$INCOME)
+df$INCOME <- parse_number(as.character(df$INCOME))
+summary(df$INCOME)
+
+# HOME_VAL
+df$HOME_VAL <- parse_number(as.character(df$HOME_VAL))
+summary(df$HOME_VAL)
+
+# BLUEBOOK
+df$BLUEBOOK <- parse_number(as.character(df$BLUEBOOK))
+
+# OLDCLAIM
+df$OLDCLAIM <- parse_number(as.character(df$OLDCLAIM))
+```
+```{r}
+#n_na <- df %>% filter(is.na(INCOME) & is.na(HOME_VAL)) %>% count()
+nrow_na <- nrow(df[is.na(df$INCOME) & is.na(df$HOME_VAL),])
+```
+
+Both the `Income (INCOME)` and the `Home Value (HOME_VAL)` variables have missing values.  However only `r nrow_na` instances where both are missing.  On their own these variables have over 400 missing values.  However, this is not a surprise that the two variables are positively correlated, because the higher the income, the more expesive a home value can be.  The plot below does show this correlation:
+```{r}
+plot(INCOME~HOME_VAL, df)
+```
+
+Given this correlation it may be possible to come up with an impute strategy where the two variables can help each other.  The `Home Value` variable with value of 0 is considered to indicate that someone is not a home owner.  Therefore, we've decided to execute the following strategy for imputing these two variables:  
+1. For the `r nrow_na` instances where both are missing, randomly assign a value to `HOME_VAL` variable choosing between 0 and median home value.  
+2. Build a simple linear model to predict income based on home value (i.e. where home value > 0).  Any negative predicted amounts should be changed to 0.  
+3. Use median income for the remaining missing income values.  
+4. Finally transform the `HOME_VAL` variable to a 0 or 1 binary indicator (0=*not a home owner*).  Any missing values are to be randomly assigned 0 or 1.  
+
+
+```{r}
+# 1
+median_home_val <- summary(df$HOME_VAL)[['Median']]
+df[is.na(df$INCOME) & is.na(df$HOME_VAL),]$HOME_VAL <- sample(c(0, median_home_val), size=nrow_na, replace = T)
+
+# 2
+lm_data <- df[df$HOME_VAL > 0,]
+lm1 <- lm(INCOME~HOME_VAL, data = lm_data)
+plot(INCOME~HOME_VAL, data = lm_data)
+abline(lm1)
+summary(lm1)
+coef(lm1)
+  # qqnorm(resid(lm1))
+  # qqline(resid(lm1))
+lm1.predict <- predict(lm1, newdata = df[is.na(df$INCOME) & df$HOME_VAL > 0,]['HOME_VAL'])
+df[is.na(df$INCOME) & df$HOME_VAL > 0,]$INCOME <- lm1.predict
+# deal with negative values
+df[!is.na(df$INCOME) & df$INCOME < 0,]$INCOME <- 0
+
+# 3
+median_income <- summary(df$INCOME)[['Median']]
+df[is.na(df$INCOME),]$INCOME <- median_income
+summary(df$INCOME)
+
+# 4
+df$HOME_OWN <- ifelse(df$HOME_VAL > 0, 1, 0)
+# deal with missing values
+nrow_na <- nrow(df[is.na(df$HOME_OWN),])
+df[is.na(df$HOME_OWN),]$HOME_OWN <- sample(c(0, 1), size=nrow_na, replace = T)
+summary(df$HOME_OWN)
+```
+
+Before moving on, it would make sense to transform the Income variable as well from being a continuous numeric variable into a categorical 3 level (Low, Mid, High) variable.  Having numerical values would not make sense as a predictor for the kind of responses we want to predict.  Also, it would help us deal with cases where Income is entered as 0 value.
+```{r}
+sum_income <- summary(df$INCOME)
+low_income_ub <- sum_income[['1st Qu.']]
+high_income_lb <- sum_income[['3rd Qu.']]
+df$INCOME_CLASS <- as.factor(case_when(
+  df$INCOME < low_income_ub ~ 'LOW',
+  df$INCOME > high_income_lb ~ 'HIGH',
+  TRUE ~ 'MID'))
+summary(df$INCOME_CLASS)
+```
+To create the 3 category levels, we used Inter-Quartile ranges, where below 25% would rank as Low, above 75% would rank as High and the rest is Mid.
+
+Now let's explore correlation between the numeric variables:
+```{r}
+# df_train <- select(df, -'INCOME', -'HOME_VAL')
+
+df_train <- select(df, TARGET_FLAG,TARGET_AMT,KIDSDRIV,AGE,HOMEKIDS,YOJ,TRAVTIME,BLUEBOOK,TIF,OLDCLAIM,CLM_FREQ,MVR_PTS,CAR_AGE)
+
+# str(df_train)
+
+cor_train <- cor(df_train) 
+
+kable(cor_train, "html") %>% kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+
+col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+
+corrplot(cor_train, method = "shade", shade.col = NA, tl.col = "black", tl.srt = 45, col = col(200), addCoef.col = "black", cl.pos = "n", order = "AOE")
+```
+
