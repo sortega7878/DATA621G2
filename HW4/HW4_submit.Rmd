@@ -1,0 +1,465 @@
+---
+title: 'Data 621 Group 2 HW 4: Insurance'
+author: 'Members: Omar Pineda, Jeff Littlejohn, Sergio Ortega Cruz, Chester Poon,
+  Simon Ustoyev'
+date: "11/15/2019"
+output:
+  pdf_document: default
+  html_document: default
+classoption: landscape
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(digits = 2, scipen = 2, width = 120)
+```
+
+```{r libs, echo=FALSE, message=FALSE, warning=FALSE}
+library(knitr)
+library(kableExtra)
+library(plyr)
+library(tidyverse)
+library(corrplot)
+library(reshape2)
+library(ggplot2)
+```
+
+## Problem Definition
+The objective is to build multiple linear regression and binary logistic regression models on the training data to predict the probability that a person will crash their car and also the amount of money it will cost if the person does crash their car.
+
+## Dataset Definition
+
+```{r, echo=FALSE}
+url <- 'insurance_dataset_definition.csv'
+ds <- read.csv(url, header = TRUE);
+knitr::kable(ds)
+```
+
+### DATA EXPLORATION
+
+```{r, echo=FALSE}
+# Load training dataset
+url <- 'insurance_training_data.csv'
+df <- read.csv(url, header = TRUE, row.names = 'INDEX')
+```
+
+Let's start with a glimpse of the data
+```{r echo=FALSE}
+head(df)
+```
+
+And, here's the summary for all the variables in the dataset:  
+
+```{r echo=FALSE}
+summary(df)
+```
+
+The summary on the data identifies the following variables with missing values (and counts)  
+1.   AGE (6)  
+2.   YOJ (454)  
+3.   INCOME (445)  
+4.   HOME_VAL (464)  
+5.   CAR_AGE (510)  
+
+Also, based on the summary and the ranges for `Min` and `Max`, the data seems to be pretty clean and valid with no invalid outliers (except for some negative values in `CAR_AGE`).  The currency data for variables, `INCOME`, `HOME_VAL`, `BLUEBOOK`, `OLDCLAIM`, got loaded as factors instead of numeric and therefore needs to be *"fixed"*.  After the conversion to numeric values, the summary for these variables, below, also shows that the data seems valid, having appropriate ranges.
+```{r echo=FALSE}
+# str(df)
+
+# INCOME
+df$INCOME <- parse_number(as.character(df$INCOME))
+# HOME_VAL
+df$HOME_VAL <- parse_number(as.character(df$HOME_VAL))
+# BLUEBOOK
+df$BLUEBOOK <- parse_number(as.character(df$BLUEBOOK))
+# OLDCLAIM
+df$OLDCLAIM <- parse_number(as.character(df$OLDCLAIM))
+
+df %>% select(INCOME, HOME_VAL, BLUEBOOK, OLDCLAIM) %>% summary()
+
+# str(df)
+```
+
+Now let's see how numerical data is correlated to the target variables and to each other, based on the chart below.
+
+```{r echo=FALSE, fig.width=9}
+cor.data <- df %>% select(TARGET_FLAG,TARGET_AMT,KIDSDRIV,AGE,HOMEKIDS,YOJ,INCOME,HOME_VAL,TRAVTIME,BLUEBOOK,TIF,OLDCLAIM,CLM_FREQ,MVR_PTS,CAR_AGE) %>% na.omit() %>%  cor() 
+
+col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+
+corrplot(cor.data, method = "shade", shade.col = NA, tl.col = "black", tl.srt = 45, col = col(200), addCoef.col = "black", cl.pos = "n", order = "original", type = "upper", addCoefasPercent = T)
+```
+
+Based on the chart, there are some cases with significant percentage of correlation.  However such parings of correlated values are expected. For example, `KIDSDRIV` is expected to be correlated to `HOMEKIDS` and high `INCOME` would correlate with higher values of `HOME_VAL` and `BLUEBOOK`.  Such correlation may not be addressed right away as we still need to prepare and possibly transform the data.  Also, some of the correlated values may fall off during model selection.
+
+## DATA PREPARATION
+
+#### `AGE` Variable
+```{r echo=FALSE}
+# impute AGE with median value
+# df %>% filter(is.na(AGE)) %>% select(MSTATUS, HOMEKIDS)
+median_age <- summary(df$AGE)[['Median']]
+df[is.na(df$AGE),]['AGE'] <- median_age
+# summary(df$AGE)
+```
+Assigning a medium age would be appropriate given that there are only 6 records with missing values.  Also those records either indicate having kids at home and/or being married and so assigning median age of `r median_age` would seem reasonable.
+
+#### `YOJ` (Years on Job) Variable
+For the `YOJ` variable it would make sense to see how it is distributed accross different job types.  Below the `boxplot` and aggregation table, against the `JOB` variable, show that the median values may be drastically different among different jobs. Therefore, assigning median values per job type rather than just the single, overall median value would be more appropriate.
+
+```{r echo=FALSE, fig.width=9}
+plot(YOJ ~ JOB, df)
+aggregate(YOJ ~ JOB, df, median)
+```
+
+
+```{r echo=FALSE}
+# Imputing YOJ with median value per job
+# df$JOB <- fct_recode(df$JOB, 'UNKNOWN' = '')
+# summary(df$JOB)
+df$JOB <- fct_recode(df$JOB, 'UNKNOWN' = '')
+# summary(df$JOB)
+
+df_tmp <- df %>% group_by(JOB) %>% 
+  mutate(NEW_YOJ = median(YOJ, na.rm = TRUE)) %>% 
+  select(JOB, YOJ, NEW_YOJ)
+
+df[is.na(df$YOJ),]$YOJ <- df_tmp[is.na(df_tmp$YOJ),]$NEW_YOJ
+# summary(df$YOJ)
+rm(df_tmp)
+```
+
+
+#### `CAR_AGE` Variable
+Car age has some invalid negative values.  We can assign them to `NA` and then deal with them as missing values.  To deal with missing values of `CAR_AGE`, it may be a good idea to find a correlation with `BLUEBOOK` value and derive approximate values for the age.  However, for this we would require  knowing the make and model of the cars.  Given that this information is not available to us and that it is considerable number of rows with the missing values, it may be best to simply asign median age.
+```{r echo=FALSE}
+# Impute `CAR_AGE` missing values
+df$CAR_AGE[which(df$CAR_AGE < 0)] <- NA
+# summary(df$CAR_AGE)
+median_car_age <- summary(df$CAR_AGE)[['Median']]
+df[is.na(df$CAR_AGE),]['CAR_AGE'] <- median_car_age
+# summary(df$CAR_AGE)
+```
+
+#### `INCOME` and `HOME_VAL` Variables
+```{r echo=FALSE}
+nrow_na <- nrow(df[is.na(df$INCOME) & is.na(df$HOME_VAL),])
+```
+Both the `INCOME` and the `HOME_VAL` variables have missing values.  However there are only `r nrow_na` instances where both variables jointly are missing values.  Otherwise, individually, these variables have over 400 missing values.  It would be no surprise, however, that the two variables are positively correlated, because the higher the income, the more expesive a home value can be expected.  The plot below does show this correlation indeed.
+```{r echo=FALSE, fig.width=9}
+plot(INCOME~HOME_VAL, df)
+```
+Given such correlation, it may be possible to come up with an impute strategy where the two variables can help each other.  We will be making an assumption here that the `HOME_VAL` variable with value of $0$ is considered to indicate that someone is not a home owner.  Therefore, we can design to execute the following strategy for imputing these two variables:  
+1.   For the `r nrow_na` instances where both are missing, randomly assign a value to `HOME_VAL` variable choosing between 0 and median home value.  
+2.   Build a simple linear model to predict income values based on the home value (i.e. where home value > 0).  Any predicted negative amounts should be changed to 0.  
+3.   Use median income for the remaining missing income values.  
+4.   Finally, to avoid having two highly correlated variables, replace `HOME_VAL` variable with a new variable called, `HOME_OWN`, by transforming the `HOME_VAL` variable to a 0 or 1 binary indicator (0=*not a home owner*).  Any missing values are to be randomly assigned to 0 or 1.  
+
+```{r echo=FALSE}
+# 1
+median_home_val <- summary(df$HOME_VAL)[['Median']]
+df[is.na(df$INCOME) & is.na(df$HOME_VAL),]$HOME_VAL <- sample(c(0, median_home_val), size=nrow_na, replace = T)
+
+# 2
+lm_data <- df[df$HOME_VAL > 0,]
+lm1 <- lm(INCOME~HOME_VAL, data = lm_data)
+lm1.predict <- predict(lm1, newdata = df[is.na(df$INCOME) & df$HOME_VAL > 0,]['HOME_VAL'])
+df[is.na(df$INCOME) & df$HOME_VAL > 0,]$INCOME <- lm1.predict
+rm(lm_data, lm1)
+
+# deal with negative values
+df[!is.na(df$INCOME) & df$INCOME < 0,]$INCOME <- 0
+
+# 3
+median_income <- summary(df$INCOME)[['Median']]
+df[is.na(df$INCOME),]$INCOME <- median_income
+# summary(df$INCOME)
+
+# 4
+df$HOME_OWN <- ifelse(df$HOME_VAL > 0, 1, 0)
+# deal with missing values
+nrow_na <- nrow(df[is.na(df$HOME_OWN),])
+df[is.na(df$HOME_OWN),]$HOME_OWN <- sample(c(0, 1), size=nrow_na, replace = T)
+# summary(df$HOME_OWN)
+
+rm(nrow_na)
+```
+
+Before moving on, it would also make sense to create a new variable, `INCOME_CLASS`, by transforming the `INCOME` variable from being a continuous numeric variable into a categorical 3 level **(LOW, MID, HIGH)** variable.  Using `INCOME` variable with exact numerical values, would not make sense as a predictor for the kind of responses we want to predict.  Also, it would help us to deal with cases where income is entered as $0$ value.
+```{r echo=FALSE}
+sum_income <- summary(df$INCOME)
+low_income_ub <- sum_income[['1st Qu.']]
+high_income_lb <- sum_income[['3rd Qu.']]
+rm(sum_income)
+df$INCOME_CLASS <- as.factor(case_when(
+  df$INCOME < low_income_ub ~ 'LOW',
+  df$INCOME > high_income_lb ~ 'HIGH',
+  TRUE ~ 'MID'))
+# summary(df$INCOME_CLASS)
+```
+To create the 3 category levels, we used Inter-Quartile ranges, where below 25% would rank as `LOW`, above 75% would rank as `HIGH` and the rest is `MID`.
+
+Before, moving on to building models, let's take the final look and validate the summary of the data.  Note, that `INCOME` and `HOME_VAL` were replaced by `INCOME_CLASS` and `HOME_OWN` variables, respectively.
+```{r echo=FALSE}
+df_train <- select(df, -'INCOME', -'HOME_VAL')
+summary(df_train)
+```
+
+
+## BUILD MODELS
+To model prediction of the quantitative variable, `TARGET_AMT`, we started off with a simple linear model including all the variables.  Progressing with stepwise, backward elimination, we arrived at our first model with reduced set of variables which are statistically significant.  Here's the summary of this `LM` model.
+```{r echo=FALSE}
+m1.data <- df_train
+m1.lm <- lm(TARGET_AMT ~ . -TARGET_FLAG-RED_CAR-YOJ-AGE-HOMEKIDS-EDUCATION-HOME_OWN-OLDCLAIM-BLUEBOOK-SEX, data = m1.data)
+summary(m1.lm)
+```
+
+Following similar progression for predicting the binary outcome of the `TARGET_FLAG` variable, here's the summary of the binomial logistic regression model.
+```{r echo=FALSE}
+b1.lm <- glm(formula = TARGET_FLAG ~ . -TARGET_AMT-RED_CAR-CAR_AGE-AGE-SEX-YOJ-HOMEKIDS, family = "binomial", data = m1.data)
+summary(b1.lm)
+```
+We'd like to see if we can possibly enhance and build additional models.
+Looking at both models, it appears that having a job as a Manager has the most statistical signfinicanse for our predictions.  In both cases, the coefficients are negative, which seems to suggest that if you're a manager, then you're more likely to be a more responsible and a less risky driver.  This made for an unanticipated, but a reasonable discovery, nevertheless.  So, it may be a good idea to simplify the `JOB` predictor into a binary category of "Not Manager" and "Manager".
+```{r echo=FALSE}
+m2.data = m1.data
+m2.data$JOB <- factor(ifelse(m2.data$JOB != "Manager", "Not Manager", "Manager"), levels = c("Not Manager", "Manager"))
+```
+This resulted in `LM` [`TARGET_AMT`] model, where all the remaing variables are being significant as shown in the summary below.
+```{r echo=FALSE}
+m2.lm <- lm(TARGET_AMT ~ . -TARGET_FLAG-RED_CAR-YOJ-AGE-HOMEKIDS-EDUCATION-HOME_OWN-OLDCLAIM-BLUEBOOK-SEX, data = m2.data)
+m2.lm <- update(m2.lm, .~. -TARGET_FLAG-RED_CAR-YOJ-AGE-HOMEKIDS-EDUCATION-HOME_OWN-OLDCLAIM-BLUEBOOK-SEX, data = m2.data)
+summary(m2.lm)
+```
+
+When applied to the binomial model, the newly transformed `JOB` variable resulted in higher significance for the `EDUCATION` variable for levels higher than "High School".  Here's the summary of the model illustrating this point.
+```{r echo=FALSE}
+b2.lm <- glm(formula = TARGET_FLAG ~ . -TARGET_AMT-RED_CAR-CAR_AGE-AGE-SEX-YOJ-HOMEKIDS, family = "binomial", data = m2.data)
+summary(b2.lm)
+```
+Interestingly, and is likely to be expected, the higher the education level, the more negative the coefficients' trend is.  This again suggests that more educated people tend to be less likely to end up with a car accident.  Therefore, similar to how we transformed the `JOB` variable, it made sense to transform `EDUCATION` to just two values, "Lower" and "Higher" ("Higher" standing for Bachelors and above).  And again we ended up with a model where all the remaing variables ended up being significant.
+```{r echo=FALSE}
+m2.data$EDUCATION <- mapvalues(m2.data$EDUCATION, c("<High School", "Bachelors", "Masters", "PhD", "z_High School"), c("Lower", "Higher", "Higher", "Higher", "Lower"))
+
+b2.lm <- glm(formula = TARGET_FLAG ~ . -TARGET_AMT-RED_CAR-CAR_AGE-AGE-SEX-YOJ-HOMEKIDS, family = "binomial", data = m2.data)
+b2.lm <- update(b2.lm, .~. -TARGET_AMT-RED_CAR-CAR_AGE-AGE-SEX-YOJ-HOMEKIDS, data = m2.data)
+summary(b2.lm)
+```
+
+## SELECT MODELS
+
+For both types of models (linear and logistic), the selection came down to the last versions of the models generated after all of the variable reductions and tranformations took place.  In case of `LM` model the *Adjusted R-squared* value was slightly improved in the latest model.  The bottom line is that the selection was mainly due to favoring more of a  simpler model, with less variables, rather than due to statistical evaluations as those were very similar between the model versions.
+
+## APPENDIX - R statistical programming code
+```{r echo=TRUE, message=FALSE, warning=FALSE, eval=FALSE}
+library(knitr)
+library(kableExtra)
+library(plyr)
+library(tidyverse)
+library(corrplot)
+library(reshape2)
+library(ggplot2)
+
+# Load dataset definition
+url <- 'insurance_dataset_definition.csv'
+ds <- read.csv(url, header = TRUE);
+ds
+
+# Load training dataset
+url <- 'insurance_training_data.csv'
+df <- read.csv(url, header = TRUE, row.names = 'INDEX')
+head(df)
+summary(df)
+
+# Parse Numerical Data
+# INCOME
+df$INCOME <- parse_number(as.character(df$INCOME))
+# HOME_VAL
+df$HOME_VAL <- parse_number(as.character(df$HOME_VAL))
+# BLUEBOOK
+df$BLUEBOOK <- parse_number(as.character(df$BLUEBOOK))
+# OLDCLAIM
+df$OLDCLAIM <- parse_number(as.character(df$OLDCLAIM))
+df %>% select(INCOME, HOME_VAL, BLUEBOOK, OLDCLAIM) %>% summary()
+
+# Show Correlation
+cor.data <- df %>% select(TARGET_FLAG,TARGET_AMT,KIDSDRIV,AGE,HOMEKIDS,
+                          YOJ,INCOME,HOME_VAL,TRAVTIME,BLUEBOOK,TIF,OLDCLAIM,
+						  CLM_FREQ,MVR_PTS,CAR_AGE) %>% na.omit() %>%  cor() 
+col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+corrplot(cor.data, method = "shade", shade.col = NA, tl.col = "black", 
+         tl.srt = 45, col = col(200), addCoef.col = "black", cl.pos = "n", 
+		 order = "original", type = "upper", addCoefasPercent = T)
+
+# impute AGE with median value
+median_age <- summary(df$AGE)[['Median']]
+df[is.na(df$AGE),]['AGE'] <- median_age
+
+# Box Plot of YOJ over JOB
+plot(YOJ ~ JOB, df)
+aggregate(YOJ ~ JOB, df, median)
+# Imputing YOJ with median value per job
+df_tmp <- df %>% group_by(JOB) %>% 
+  mutate(NEW_YOJ = median(YOJ, na.rm = TRUE)) %>% 
+  select(JOB, YOJ, NEW_YOJ)
+df[is.na(df$YOJ),]$YOJ <- df_tmp[is.na(df_tmp$YOJ),]$NEW_YOJ
+
+# Impute `CAR_AGE` missing values
+df$CAR_AGE[which(df$CAR_AGE < 0)] <- NA
+median_car_age <- summary(df$CAR_AGE)[['Median']]
+df[is.na(df$CAR_AGE),]['CAR_AGE'] <- median_car_age
+
+# Transform INCOME and HOME_VAL
+nrow_na <- nrow(df[is.na(df$INCOME) & is.na(df$HOME_VAL),])
+plot(INCOME~HOME_VAL, df)
+# 1
+median_home_val <- summary(df$HOME_VAL)[['Median']]
+df[is.na(df$INCOME) & is.na(df$HOME_VAL),]$HOME_VAL <- sample(c(0, median_home_val),
+                                                              size=nrow_na, replace = T)
+# 2
+lm_data <- df[df$HOME_VAL > 0,]
+lm1 <- lm(INCOME~HOME_VAL, data = lm_data)
+lm1.predict <- predict(lm1, newdata = df[is.na(df$INCOME) & df$HOME_VAL > 0,]['HOME_VAL'])
+df[is.na(df$INCOME) & df$HOME_VAL > 0,]$INCOME <- lm1.predict
+rm(lm_data, lm1)
+# deal with negative values
+df[!is.na(df$INCOME) & df$INCOME < 0,]$INCOME <- 0
+# 3
+median_income <- summary(df$INCOME)[['Median']]
+df[is.na(df$INCOME),]$INCOME <- median_income
+# 4
+df$HOME_OWN <- ifelse(df$HOME_VAL > 0, 1, 0)
+# deal with missing values
+nrow_na <- nrow(df[is.na(df$HOME_OWN),])
+df[is.na(df$HOME_OWN),]$HOME_OWN <- sample(c(0, 1), size=nrow_na, replace = T)
+
+# create INCOME_CLASS
+sum_income <- summary(df$INCOME)
+low_income_ub <- sum_income[['1st Qu.']]
+high_income_lb <- sum_income[['3rd Qu.']]
+rm(sum_income)
+df$INCOME_CLASS <- as.factor(case_when(
+  df$INCOME < low_income_ub ~ 'LOW',
+  df$INCOME > high_income_lb ~ 'HIGH',
+  TRUE ~ 'MID'))
+
+# validate new model summary
+df_train <- select(df, -'INCOME', -'HOME_VAL')
+summary(df_train)
+
+## Build Models
+# Build first LM
+m1.data <- df_train
+m1.lm <- lm(TARGET_AMT ~ . -TARGET_FLAG-RED_CAR-YOJ-AGE-HOMEKIDS-EDUCATION-HOME_OWN
+            -OLDCLAIM-BLUEBOOK-SEX, data = m1.data)
+summary(m1.lm)
+
+# Build first Logistic Model
+b1.lm <- glm(formula = TARGET_FLAG ~ . -TARGET_AMT-RED_CAR-CAR_AGE-AGE-SEX-YOJ-HOMEKIDS, 
+             family = "binomial", data = m1.data)
+summary(b1.lm)
+
+# Transform JOB variable
+m2.data = m1.data
+m2.data$JOB <- factor(ifelse(m2.data$JOB != "Manager", "Not Manager", "Manager"), 
+                      levels = c("Not Manager", "Manager"))
+# Build second LM
+m2.lm <- lm(TARGET_AMT ~ . -TARGET_FLAG-RED_CAR-YOJ-AGE-HOMEKIDS-EDUCATION-HOME_OWN
+            -OLDCLAIM-BLUEBOOK-SEX, data = m2.data)
+m2.lm <- update(m2.lm, .~. -TARGET_FLAG-RED_CAR-YOJ-AGE-HOMEKIDS-EDUCATION-HOME_OWN
+                -OLDCLAIM-BLUEBOOK-SEX, data = m2.data)
+summary(m2.lm)
+
+# Build second Logistic Model
+b2.lm <- glm(formula = TARGET_FLAG ~ . -TARGET_AMT-RED_CAR-CAR_AGE-AGE-SEX-YOJ-HOMEKIDS, 
+             family = "binomial", data = m2.data)
+summary(b2.lm)
+
+# Tranform EDUCATION variable
+m2.data$EDUCATION <- mapvalues(m2.data$EDUCATION, 
+                               c("<High School", "Bachelors", "Masters", 
+                                 "PhD", "z_High School"), 
+                               c("Lower", "Higher", "Higher", "Higher", "Lower"))
+
+# Build third Logistic Model
+b2.lm <- glm(formula = TARGET_FLAG ~ . -TARGET_AMT-RED_CAR-CAR_AGE-AGE-SEX-YOJ-HOMEKIDS, 
+             family = "binomial", data = m2.data)
+b2.lm <- update(b2.lm, .~. -TARGET_AMT-RED_CAR-CAR_AGE-AGE-SEX-YOJ-HOMEKIDS, 
+                data = m2.data)
+summary(b2.lm)
+```
+
+
+## PREDICTIONS - R statistical programming code
+```{r echo=TRUE, eval=FALSE}
+# Load Data
+url <- './insurance-evaluation-data.csv'
+df.fin <- read.csv(url, header = TRUE, row.names = 'INDEX')
+df <- df.fin
+
+## Prepare Data
+# Transform EDUCATION
+df$EDUCATION <- mapvalues(df$EDUCATION, 
+                          c("<High School", "Bachelors", "Masters", "PhD", "z_High School"), 
+                          c("Lower", "Higher", "Higher", "Higher", "Lower"))
+
+# Transform JOB
+df$JOB <- factor(ifelse(df$JOB != "Manager", "Not Manager", "Manager"), 
+                 levels = c("Not Manager", "Manager"))
+levels(df$JOB)
+
+# Parse INCOME
+df$INCOME <- parse_number(as.character(df$INCOME))
+
+# Parse HOME_VAL
+df$HOME_VAL <- parse_number(as.character(df$HOME_VAL))
+
+# Parse BLUEBOOK
+df$BLUEBOOK <- parse_number(as.character(df$BLUEBOOK))
+
+# Parse OLDCLAIM
+df$OLDCLAIM <- parse_number(as.character(df$OLDCLAIM))
+
+# Impout missing CAR_AGE
+df[is.na(df$CAR_AGE),]['CAR_AGE'] <- median_car_age
+
+# Impute missing INCOME data
+# 1
+nrow_na <- nrow(df[is.na(df$INCOME) & is.na(df$HOME_VAL),])
+df[is.na(df$INCOME) & is.na(df$HOME_VAL),]$HOME_VAL <- sample(
+  c(0, median_home_val), size=nrow_na, replace = T)
+
+# 2
+lm_data <- df[df$HOME_VAL > 0,]
+lm1.predict <- predict(lm1, newdata = df[is.na(df$INCOME) & df$HOME_VAL > 0,]['HOME_VAL'])
+df[is.na(df$INCOME) & df$HOME_VAL > 0,]$INCOME <- lm1.predict
+# deal with negative values
+df[!is.na(df$INCOME) & df$INCOME < 0,]$INCOME <- 0
+
+# 3
+df[is.na(df$INCOME),]$INCOME <- median_income
+
+# 4
+df$HOME_OWN <- ifelse(df$HOME_VAL > 0, 1, 0)
+# deal with missing values
+nrow_na <- nrow(df[is.na(df$HOME_OWN),])
+df[is.na(df$HOME_OWN),]$HOME_OWN <- sample(c(0, 1), size=nrow_na, replace = T)
+summary(df$HOME_OWN)
+
+# Create INCOME_CLASS
+df$INCOME_CLASS <- as.factor(case_when(
+  df$INCOME < low_income_ub ~ 'LOW',
+  df$INCOME > high_income_lb ~ 'HIGH',
+  TRUE ~ 'MID'))
+
+# str(df)
+# summary(df)
+
+m.predict <- predict(m2.lm, newdata = df)
+b.predict <- predict(b2.lm, newdata = df)
+
+df.fin$TARGET_FLAG <- ifelse(b.predict > .5, 1, 0)
+df.fin$TARGET_AMT <- m.predict
+df.fin[df.fin$TARGET_FLAG == 0,]$TARGET_AMT <- ''
+write.csv(df.fin, "insurance-evaluation-data-completed.csv")
+```
+
