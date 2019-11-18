@@ -480,6 +480,7 @@ appendixA[, 6] = predicted_cases_int[1669:3335]
 appendixA <- rbind(appendixA, c(test$IN[1668], predicted_cases[1668], predicted_cases_int[1688], rep(NA, 3)))
 
 names(appendixA) = rep(c("Index", "Value", "Cases"), 2)
+write.csv(appendixA, file = "Predictionswine.csv")
 
 pander(appendixA)
 ```
