@@ -35,22 +35,21 @@ Despite the national narrative that America affords its inhabitants an unprecede
 
 ##Literature Review
 
-We reviewed three papers for our review that look at social mobility where each study had a slightly different approach at analyzing the different independent variables that affect intergenerational social and economic outcome. Broadly, the first paper reviewed observed economic outcomes children in families that moved from a poorer to a better income neighborhood. The second paper reviewed researched the interplay of a child's gender from poorer neighborhoods versus higher income neighborhoods and those children's adult economic outcome. While these two papers studies were focused on communities in the United States, our third paper reviewed looked at differences in Denmark that draw heavily from the theories of sociologist Pierre Bourdieu on the concept of "cultural capital", which is the theory that individuals can possess a form of "capital" quantified by the amount of knowledge and behavior (culture) that promote social mobility in a socially stratified society (Mollegaard & Jager 2015).
-
-The first paper we looked at, The Impacts of Neighborhoods on Intergenerational Mobility I:Childhood Exposure Effects found that families that moved from a lower to a better income area had children that had greater social mobility than those that stayed.  There was a positive improvement in the child's adult income, which rose at a rate of about 4% that was proportional the number of years spent growing up in the higher income area (Chetty & Hendren 2016).  The dataset composed of federal income tax records from 1996 through 2012 and focused on families with children born between 1980 and 1988 and moved across neighborhoods between 1997 and 2010. This paper reconciles conflicting papers by introducing the number of years growing up in the better neighborhood.  Interestingly, a symmetrical finding was found for families moving from higher to lower income neighborhoods in which the children of those families had adult incomes that reduced 4% per years lived in the lower income neighborhood (Chetty & Hendren 2016).
-The key variables are fairly different from the ones we are using from the dataset in AER. For this paper, those variables are parents income, parent location, child's adult earned income, teenage birth, marriage, educational attainment, and the childs employment at adulthood.
-While the primary independent variable is the childs adult earned income, ours is educational attainment. Our analysis is also more focused on key variables that are characteristic of a neighborhood, whereas this study is more focused on those associated with the family unit.  Our dataset also does not contain any interventional events with each family as this study has.  A way to take our study further would be to complete the dataset in AER with family income as well as the childs adult earned income.
+We reviewed three papers for our review that look at social mobility where each study had a slightly different approach at analyzing the different independent variables that affect intergenerational social and economic outcome. Broadly, the first paper reviewed observed economic outcomes children in families that moved from a poorer to a better income neighborhood. The second paper reviewed researched the interplay of a child's gender from poorer neighborhoods versus higher income neighborhoods and those children's adult economic outcome. Our third paper reviewed looked at differences in Denmark that draw heavily from the theories of sociologist Pierre Bourdieu on the concept of "cultural capital", which is the theory that individuals can possess a form of "capital" quantified by the amount of knowledge and behavior (culture) that promote social mobility in a socially stratified society (Møllegaard & Jæger 2015).
+The first paper we looked at, The Impacts of Neighborhoods on Intergenerational Mobility I:Childhood Exposure Effects found that families that moved from a lower to a better income area had children that had greater social mobility than those that stayed.  There was a positive improvement in the child's adult income, which rose at a rate of about 4% that was proportional the number of years spent growing up in the higher income area (Chetty & Hendren 2016). The dataset composed of federal income tax records from 1996 through 2012 and focused on families with children born between 1980 and 1988 and moved across neighborhoods between 1997 and 2010. Interestingly, a symmetrical finding was found for families moving from higher to lower income neighborhoods in which the children of those families had adult incomes that reduced 4% per years lived in the lower income neighborhood (Chetty & Hendren 2016).
+While the primary independent variable is the child's adult earned income in the Chetty paper, ours is educational attainment. Our analysis is also more focused on key variables that are characteristic of a neighborhood, whereas this study is more focused on those associated with the family unit.  Our dataset also does not contain any interventional events with each family as this study has.  
 The second paper we reviewed, Childhood Environment and Gender Gaps in Adulthood takes a deeper look into the effects of gender and social mobility. Like the first paper we reviewed, the data was drawn from tax records for families with children born in the 1980s.  The major finding of this study found that the traditional gender gap in employment and income earnings are reversed in poor families, particularly in high-poverty neighborhoods. Boys from these families are less likely to work in adulthood and the issue is compounded with single-parent families.  The authors write: 
 Low-income boys who grow up in high-poverty, high-minority areas work less than girls. These areas also have higher rates of crime, consistent with a model in which boys with lower latent earnings potential who grow up in environments of concentrated poverty switch from the formal labor market to crime or other illicit activities (Chetty et al. 2016).
 
-Though the paper does a comprehensive analysis on the impact of environment based on economic class and the interplay of gender, a deeper analysis that would include race as a more prominent factor would strengthen this paper significantly. This is especially true if we approach the analysis of these factors (race, class, gender, etc.) as observations that are not mutually exclusive. 
-The last two papers we reviewed included clear and concrete independent variables for their analyses, the third paper we reviewed is different in its approach in many ways. The data quantifies three different forms of capital as measured in three major categories: economic, social and cultural. (Mollegaard & Jager 2015). Economic capital is self-explanatory in that it's a measurement of income and assets.  Cultural capital is measured in less concrete terms such as years of educational attainment of the parents and grandparents, subscriptions to news outlets, and other things.  Social capital is interesting in that it is best understood as a kind of network analysis manifesting as professional networks, friendships, familial connections, etc.  The paper also addresses the intergenerational effects on educational attainment as far as two-generations, whereas most studies review a single generation prior. 
-The findings of the paper found that in Denmark, educational attainment or more academically driven educational attainment depended more on cultural capital than of social/economic capital (Mollegaard & Jager 2015).  While these measures are fascinating and the results of the study show that cultural capital measures are certainly valid and useful independent variables, it's difficult to apply an appropriate weight to some of the cultural capital examples.  Generally, applying the appropriate weight of the impact of various aspects of cultural capital are difficult to accomplish and to justify.  Further research is needed to properly assess the impact of specific variables associated with cultural capital to apply a stronger model in predicting educational outcomes.  For our project, measuring social and cultural capital appropriately will be unfeasible.
-Overall, a common measure of all reviewed papers focuses on parental income or economic means to assess the probability of social upward mobility of the childs adulthood income.  This "intergenerational mobility" is the common theme as a measure of social mobility. For our project, while we are not focused on income as a measure, our project is focused primarily on educational attainment to serve as a proxy for social mobility. We are also looking to identify the strongest predictors for upward social mobility as measured in educational attainment.
+Though the paper does a comprehensive analysis on the impact of environment based on economic class and the interplay of gender, a deeper analysis that would include race as a more prominent factor would strengthen this paper significantly. This is especially true if we approach the analysis of these factors (race, class, gender, etc) as observations that are not mutually exclusive. 
+The last two papers we reviewed included clear and concrete independent variables for their analyses, the third paper we reviewed is different in its approach in many ways. The data quantifies three different forms of capital as measured in three major categories: economic, social and cultural (Møllegaard & Jæger 2015). Economic capital is self-explanatory in that it's a measurement of income and assets.  Cultural capital is measured in less concrete terms such as years of educational attainment of the parents and grandparents, subscriptions to news outlets, and other things.  Social capital is interesting in that it is best understood as a kind of network analysis manifesting as professional networks, friendships, familial connections, etc.  The paper also addresses the intergenerational effects on educational attainment as far as two-generations, whereas most studies review a single generation prior. 
+The findings of the paper found that in Denmark, educational attainment depended more on cultural capital than of social/economic capital (Møllegaard & Jæger 2015).  While these measures are fascinating and the results of the study show that cultural capital measures are certainly valid and useful independent variables, it's difficult to apply an appropriate weight to some of the cultural capital examples. Further research is needed to properly assess the impact of specific variables associated with cultural capital to apply a stronger model in predicting educational outcomes.  
+Overall, a common measure of all reviewed papers focus on parental income or economic means to assess the probability of social upward mobility of the child's adulthood income.  This "intergenerational mobility" is the common theme as a measure of social mobility. For our project, while we are not focused on income as a measure, our project is focused primarily on educational attainment to serve as a proxy for social mobility. We are also looking to identify the strongest predictors for upward social mobility as measured in educational attainment.
 
-\newpage
 
 ##Methodology
+
+Extract dataset from package, perform exploratory analysis, check for multicollinearity with three different methods, construct a multiple linear regression model, diagnose the model and check model assumptions, create another model with interaction terms, create regression equations, confidence intervals and provide interpretation for the results and insights.
 
 ##Experimentation and Results:
 
@@ -80,7 +79,8 @@ Though the data set contains 14 different variables, we will only use score, the
 
 ```{r descriptive, echo=FALSE }
 #psych::describe(CollegeDistance)
-skimr::skim(CollegeDistance)
+#skimr::skim(CollegeDistance)
+knitr::include_graphics("final5.png")
 ```
 
 
@@ -93,6 +93,7 @@ One of the very first things we want to do before making any model is check for 
 #plot(CollegeDistance[c(3,10, 11)])
 knitr::include_graphics("final3.png")
 ```
+
 Looking at our plot, it does not appear that any of our quantitative predictor variables are highly correlated, or have a strong linear relationship with one another.
 
 
@@ -148,8 +149,6 @@ There are many types of criteria that we can use to determine whether or not one
 ####For Comparing Nested Models
 
 If we are comparing nested models, i.e. one model's predictors are a subset of the other model's predictors, we have additional comparison options. For comparing nested models, we can use the p-values from t-tests or partial F-tests, only choosing the more complex model if the p-value of the t-test or F-test is below .05. We can also use adjusted R-squared as a comparison tool; however, I would discourage anyone from using adjusted R-squared as their comparison criteria because the other methods of comparison are more rigorous.
-
-\newpage
 
 ####Creating the model
 ####Stepwise Selection
@@ -296,7 +295,7 @@ From this interval we can say we are 95% confident that the mean number of years
 
 ###Adding Interaction Terms
 
-###Creating a New Model
+###Creating a New Model and model assumptions
 
 Another attribute we can add to our models is interaction terms. For this model we will use an interaction between our distance distance and urban variables. By that we mean that the relationship between the education level that a student achieves and the distance they are from a four-year college depends on whether the student's high school is located in an urban area or not. 
 
@@ -306,13 +305,10 @@ schoolmod2 <- lm(education ~ score + tuition + distance*urban, data = CollegeDis
 
 ```
 
-
-###Checking Model Assumptions
-
 Since we have created a second model, we need to check our model assumptions again. 
 
 ```{r plot3, echo=FALSE }
-#plot(schoolmod2)taking out to adjust to page limit
+#plot(schoolmod2)
 knitr::include_graphics("final2.png")
 ```
 
@@ -357,6 +353,10 @@ anova(schoolmod, schoolmod2)
 ```
 
 Our output tells us that our partial F-statistic is .0034 and, from that, we get a p-value of .9535. This p-value is not significant at even a high significance level of .1 so we can conclude that the relationship between the education level that a student achieves and the distance they are from a four-year college does not depend on whether the student's high school is located in an urban area or not.
+
+###Future work
+
+This type of study help us to understand better different elements that can influence education attainment and hence social mobility and ultimately equality. Understanding that investing on better tutoring to improve scores, better transportation for kids that are far from schools, an other elements that this study helps can change the possible outcomes on better results of extending years of study and hence better opportunities.
 
 
 
